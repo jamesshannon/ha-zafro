@@ -9,6 +9,6 @@
   "issue_tracker": "https://github.com/jamesshannon/ha-zafro/issues",
   "loggers": ["pyzafro", "aiomqtt"],
   "quality_scale": "silver",
-  "requirements": ["pyzafro@git+https://github.com/jamesshannon/pyzafro@v0.1.1"],
-  "version": "0.9.2"
+  "requirements": ["pyzafro@git+https://github.com/jamesshannon/pyzafro@v0.1.2"],
+  "version": "0.9.3"
 }

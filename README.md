@@ -149,7 +149,7 @@ restart Home Assistant.
 `pyzafro` is not on PyPI yet, so the manifest asks for it by git tag:
 
 ```json
-"requirements": ["pyzafro@git+https://github.com/jamesshannon/pyzafro@v0.1.1"]
+"requirements": ["pyzafro@git+https://github.com/jamesshannon/pyzafro@v0.1.2"]
 ```
 
 Home Assistant installs this itself at setup, the same way it installs any other
@@ -161,7 +161,7 @@ requirement — there is nothing extra to do. Two consequences worth knowing:
   against what is installed and touches the network only once, ever.
 - Upgrading the library means bumping the tag here, not just tagging `pyzafro`.
 
-This reverts to `pyzafro==0.1.1` once the library is published.
+This reverts to `pyzafro==0.1.2` once the library is published.
 
 ## Configuration
 
@@ -206,7 +206,13 @@ Two details worth knowing:
   they appear when the device reports them, a second or so later.
 
 Availability comes from the device's MQTT last-will topic, so a unit unplugged at the
-wall shows as unavailable rather than stale.
+wall shows as unavailable rather than stale — immediately, because that is the device
+speaking for itself.
+
+Losing the connection to the cloud is treated differently. The broker drops the socket
+every so often and the reconnect takes a second or two, with the unit reachable either
+side of it. Entities are only marked unavailable if the connection is still down after a
+minute, so a routine reconnect is never visible.
 
 ### Devices added or removed later
 
