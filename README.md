@@ -144,6 +144,25 @@ CDN, so no submission to `home-assistant/brands` is needed for the icon to appea
 Copy `custom_components/zafro` into your `config/custom_components/` directory and
 restart Home Assistant.
 
+### The pyzafro dependency
+
+`pyzafro` is not on PyPI yet, so the manifest asks for it by git tag:
+
+```json
+"requirements": ["pyzafro@git+https://github.com/jamesshannon/pyzafro@v0.1.0"]
+```
+
+Home Assistant installs this itself at setup, the same way it installs any other
+requirement — there is nothing extra to do. Two consequences worth knowing:
+
+- Resolving a URL requirement needs `git` on the host and a reachable GitHub on
+  **every** start, because Home Assistant cannot tell whether a URL is already
+  satisfied and so re-runs the install each time. A version pinned on PyPI is checked
+  against what is installed and touches the network only once, ever.
+- Upgrading the library means bumping the tag here, not just tagging `pyzafro`.
+
+This reverts to `pyzafro==0.1.0` once the library is published.
+
 ## Configuration
 
 | Field | Meaning |
@@ -267,7 +286,7 @@ For a device that needs characterising from scratch, `pyzafro` ships a CLI that 
 what your unit does while you exercise it from the app:
 
 ```bash
-pip install pyzafro
+pip install git+https://github.com/jamesshannon/pyzafro
 pyzafro-diagnose report -e you@example.com -o zafro-report.json
 ```
 
