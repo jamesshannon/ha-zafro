@@ -73,11 +73,11 @@ rules:
   discovery:
     status: exempt
     comment: >-
-      The unit is on the local network and takes a DHCP lease, so it is findable in
-      principle. But it is reachable only through the vendor cloud, so finding it
+      Reachable only through the vendor cloud, so finding the unit on the network
       grants no capability, and one config entry already covers every device on the
-      account. That leaves a DHCP matcher whose only payoff is one prompt at first
-      setup, keyed on an OUI belonging to the Wi-Fi module rather than to Zafro.
+      account. Checked anyway: it presents no DHCP hostname identifying it, and the
+      only observed OUI belongs to the Wi-Fi module the ODM sourced rather than to
+      Zafro, so a matcher would fire on unrelated products.
   discovery-update-info:
     status: exempt
     comment: See discovery.
