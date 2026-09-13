@@ -1,0 +1,43 @@
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+  "D203",    # incompatible with D211
+  "D213",    # incompatible with D212
+  "COM812",  # conflicts with the formatter
+  "CPY001",  # no copyright headers
+  "TRY003",  # messages belong at the raise site
+  "EM101",
+  "EM102",
+  "ANN401",  # **kwargs on Home Assistant entity methods are genuinely Any
+  "PLR0913",
+  "ARG002",  # Home Assistant passes arguments platforms may not need
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Test fixtures are consumed by name at runtime, so their imports must stay real.
+"tests/*" = [
+  "S101", "PLR2004", "D1", "D401", "ANN", "SLF001",
+  "ARG001", "ARG002", "INP001", "TC001", "TC002", "TC003", "ASYNC109",
+]
+# `hass` is part of the platform setup contract whether or not a platform needs it.
+"custom_components/zafro/{binary_sensor,climate,sensor,switch,diagnostics}.py" = ["ARG001"]
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-base-classes = ["homeassistant.helpers.entity.Entity"]
+
+[tool.mypy]
+strict = true
+warn_unreachable = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["homeassistant.*", "voluptuous.*", "pytest_homeassistant_custom_component.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

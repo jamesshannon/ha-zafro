@@ -1,0 +1,21 @@
+{
+  "entity": {
+    "sensor": {
+      "rssi": { "default": "mdi:wifi" },
+      "work_time": { "default": "mdi:timer-outline" },
+      "filter_hours": { "default": "mdi:air-filter" },
+      "water_level": { "default": "mdi:water" },
+      "fault_code": { "default": "mdi:alert-circle-outline" }
+    },
+    "binary_sensor": {
+      "reached_target": { "default": "mdi:target", "state": { "off": "mdi:target-variant" } }
+    },
+    "switch": {
+      "sleep": { "default": "mdi:power-sleep" },
+      "eco": { "default": "mdi:leaf" },
+      "child_lock": { "default": "mdi:lock" },
+      "display": { "default": "mdi:led-on", "state": { "off": "mdi:led-off" } },
+      "mute": { "default": "mdi:volume-off", "state": { "off": "mdi:volume-high" } }
+    }
+  }
+}

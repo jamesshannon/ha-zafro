@@ -1,0 +1,87 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Zafro",
+        "description": "Sign in with the email address and password you use in the Zafro app. Every device on the account is added; you can disable the ones you do not want afterwards.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        },
+        "data_description": {
+          "email": "The email address your Zafro account is registered to.",
+          "password": "Your Zafro account password. It is stored so the connection can be renewed without prompting you again."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate with Zafro",
+        "description": "The password stored for {email} was rejected. Enter the current password.",
+        "data": {
+          "password": "[%key:component::zafro::config::step::user::data::password%]"
+        }
+      },
+      "reconfigure": {
+        "title": "Update Zafro credentials",
+        "data": {
+          "email": "[%key:component::zafro::config::step::user::data::email%]",
+          "password": "[%key:component::zafro::config::step::user::data::password%]"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid authentication",
+      "cannot_connect": "Failed to connect"
+    },
+    "abort": {
+      "already_configured": "This Zafro account is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Re-configuration was successful",
+      "account_mismatch": "Those credentials are for a different Zafro account. Add it as a new entry instead."
+    }
+  },
+  "entity": {
+    "climate": {
+      "zafro": {
+        "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "silent": "Silent",
+              "low": "Low",
+              "medium": "Medium",
+              "high": "High",
+              "turbo": "Turbo"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "ambient_temperature": { "name": "Ambient temperature" },
+      "ambient_humidity": { "name": "Ambient humidity" },
+      "rssi": { "name": "Wi-Fi signal" },
+      "work_time": { "name": "Operating time" },
+      "filter_hours": { "name": "Filter life remaining" },
+      "water_level": { "name": "Water level" },
+      "fault_code": { "name": "Fault code" }
+    },
+    "binary_sensor": {
+      "problem": { "name": "Problem" },
+      "reached_target": { "name": "Target reached" }
+    },
+    "switch": {
+      "sleep": { "name": "Sleep mode" },
+      "eco": { "name": "Eco mode" },
+      "child_lock": { "name": "Child lock" },
+      "display": { "name": "Display light" },
+      "mute": { "name": "Beeper" }
+    }
+  },
+  "exceptions": {
+    "unsupported": {
+      "message": "This device cannot do that: {error}"
+    },
+    "communication_error": {
+      "message": "Could not reach the device: {error}"
+    }
+  }
+}

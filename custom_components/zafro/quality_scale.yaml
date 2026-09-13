@@ -1,0 +1,99 @@
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: The integration registers no custom actions.
+  appropriate-polling:
+    status: exempt
+    comment: |
+      Pure push. The coordinator has update_interval=None and is fed by the library's
+      MQTT subscription.
+  brands: todo
+  common-modules: done
+  config-flow: done
+  config-flow-test-coverage: done
+  dependency-transparency: done
+  docs-actions:
+    status: exempt
+    comment: No custom actions.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  entity-event-setup:
+    status: done
+    comment: |
+      The coordinator subscribes in _async_setup, before the first refresh, and
+      unsubscribes via config_entry.async_on_unload.
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry:
+    status: done
+    comment: Unique id is the lowercased account email.
+
+  # Silver
+  action-exceptions:
+    status: done
+    comment: |
+      entity.async_call maps ZafroUnsupportedError to ServiceValidationError and every
+      other ZafroError to HomeAssistantError, both with translated messages.
+  config-entry-unloading: done
+  docs-configuration-parameters:
+    status: exempt
+    comment: No options flow.
+  docs-installation-parameters: done
+  entity-unavailable:
+    status: done
+    comment: Driven by the device's LWT topic and by the transport dropping.
+  integration-owner: done
+  log-when-unavailable:
+    status: done
+    comment: Handled inside pyzafro's reconnect loop, which logs once per transition.
+  parallel-updates: done
+  reauthentication-flow: done
+  test-coverage: todo
+
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: Cloud-only devices; there is nothing on the local network to discover.
+  discovery-update-info:
+    status: exempt
+    comment: See discovery.
+  docs-data-update: done
+  docs-examples: todo
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: todo
+  dynamic-devices:
+    status: todo
+    comment: |
+      Devices added in the app after setup appear on reload but not live. ZafroClient
+      preserves existing device objects across enumeration, so a periodic re-enumeration
+      is the remaining work.
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default: done
+  entity-translations: done
+  exception-translations: done
+  icon-translations: done
+  reconfiguration-flow: done
+  repair-issues:
+    status: exempt
+    comment: No user-fixable condition is detectable yet.
+  stale-devices:
+    status: todo
+    comment: Depends on dynamic-devices.
+
+  # Platinum
+  async-dependency: done
+  inject-websession:
+    status: done
+    comment: pyzafro borrows the session from async_get_clientsession and never closes it.
+  strict-typing: done
