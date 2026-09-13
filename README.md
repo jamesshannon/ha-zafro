@@ -133,6 +133,23 @@ logger:
     pyzafro: debug
 ```
 
+**Something on your unit is missing, or shows a stale value.** The library notices when a
+device reports something it cannot use and says so, once per distinct key rather than on
+every push:
+
+- A **field it has never seen** — new firmware, or a product that is not fully supported —
+  is logged at INFO. Nothing breaks; you are just missing a sensor. Raise `pyzafro` to
+  `info` in the block above to see these.
+- A **field it supports carrying a value it cannot read** — a mode number outside the
+  known range, say — is logged at WARNING, because that field will keep showing its last
+  known value and Home Assistant has no way to tell.
+- A device **operating outside its capability entry** — a fan speed or setpoint beyond
+  what the model is recorded as supporting — is also a WARNING. It means the table is too
+  narrow for your unit.
+
+You do not need to have had logging enabled to report any of this. All three are recorded
+against the device and included in the diagnostics download.
+
 ## Adding a model
 
 If your unit is recognised but some feature is missing — or it is not recognised at all —
