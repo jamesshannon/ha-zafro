@@ -81,6 +81,7 @@ class FakeBroker:
 
     def __init__(self) -> None:
         self.published: list[dict[str, Any]] = []
+        self.state_frame: dict[str, Any] = dict(STATE_FRAME)
         self._devices: dict[str, ZafroDevice] = {}
 
     def register(self, device: ZafroDevice) -> None:
@@ -90,7 +91,7 @@ class FakeBroker:
         self.published.append(payload)
         device = self._devices[sn]
         if payload["cmd"] == 3:
-            device.handle_frame(3, dict(STATE_FRAME))
+            device.handle_frame(3, dict(self.state_frame))
         elif payload["cmd"] == 5:
             device.handle_frame(5, dict(BASE_INFO_FRAME))
 

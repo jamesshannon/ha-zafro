@@ -59,10 +59,17 @@ async def async_setup_entry(
     entry: ZafroConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Add one climate entity per device."""
+    """Add a climate entity for each device that is actually a climate device.
+
+    A product this library has never handled — the capability table's fallback assumes
+    an air conditioner — narrows itself to nothing once it reports its first state
+    frame. Building a thermostat for it would be worse than building nothing; pyzafro
+    logs a warning naming the model when that happens.
+    """
     async_add_entities(
         ZafroClimate(coordinator)
         for coordinator in entry.runtime_data.coordinators.values()
+        if coordinator.device.capabilities.is_climate
     )
 
 

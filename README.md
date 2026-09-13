@@ -14,10 +14,15 @@ repository is only the Home Assistant half.
 
 Confirmed against a **90038EAC0-12K-ZAZ** 12,000 BTU window unit.
 
-Other models in the same family are matched by model prefix, and anything unrecognised
-falls back to a minimal capability set — power, mode, setpoint and the ambient readings —
-rather than refusing to set up. If you have a model that is not fully supported, see
-[Adding a model](#adding-a-model).
+Other models in the same family are matched by model prefix. Anything unrecognised still
+sets up: the library watches what the device reports in its first state frame and builds
+entities from that, rather than refusing to start or inventing controls the unit does not
+have.
+
+If you own a Zafro product that is not an air conditioner at all, it will register as a
+device with no controls, and you will see a warning naming the model. That is the library
+telling you it has never handled that product class — not a failure. See
+[Adding a model](#adding-a-model); it is a change to `pyzafro` alone.
 
 ## What you get
 

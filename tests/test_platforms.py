@@ -5,8 +5,12 @@ from __future__ import annotations
 import pytest
 from homeassistant.const import ATTR_ENTITY_ID, SERVICE_TURN_ON, STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pyzafro.capabilities import resolve
+
+from custom_components.zafro.const import DOMAIN
 
 from .conftest import FakeClient
 
@@ -110,3 +114,26 @@ async def test_device_going_offline_makes_entities_unavailable(
     await hass.async_block_till_done()
     assert hass.states.get("climate.bedroom_ac").state == "unavailable"
     assert hass.states.get("switch.bedroom_ac_eco_mode").state == "unavailable"
+
+
+async def test_an_unsupported_product_gets_a_device_but_no_thermostat(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    fake_client: FakeClient,
+) -> None:
+    """A Zafro product from a class pyzafro has never handled."""
+    fake_client.device.model = "SMARTVAC-3000"
+    fake_client.device.capabilities = resolve("SMARTVAC-3000")
+    fake_client.broker.state_frame = {"wrong": 0, "worktime": 4, "suction": 2}
+
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert [s for s in hass.states.async_all() if s.domain == "climate"] == []
+    assert [s for s in hass.states.async_all() if s.domain == "switch"] == []
+    # The device is still registered, so its diagnostics can be downloaded.
+    registry = dr.async_get(hass)
+    assert registry.async_get_device_by_identifier(
+        (DOMAIN, fake_client.device.sn), mock_config_entry.entry_id
+    )

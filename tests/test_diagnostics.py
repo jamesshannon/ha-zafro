@@ -7,9 +7,9 @@ import json
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from .conftest import FakeClient
-
 from custom_components.zafro.diagnostics import async_get_config_entry_diagnostics
+
+from .conftest import FakeClient
 
 #: Everything a dump must never contain, from the fixtures in conftest.
 SECRETS = [
