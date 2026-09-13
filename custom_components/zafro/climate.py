@@ -16,7 +16,7 @@ from homeassistant.components.climate.const import (
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from pyzafro import Feature, Mode, TemperatureUnit
 
-from .entity import ZafroEntity, async_call
+from .entity import ZafroEntity, async_call, async_setup_device_entities
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -66,10 +66,14 @@ async def async_setup_entry(
     frame. Building a thermostat for it would be worse than building nothing; pyzafro
     logs a warning naming the model when that happens.
     """
-    async_add_entities(
-        ZafroClimate(coordinator)
-        for coordinator in entry.runtime_data.coordinators.values()
-        if coordinator.device.capabilities.is_climate
+    async_setup_device_entities(
+        entry,
+        async_add_entities,
+        lambda coordinator: (
+            [ZafroClimate(coordinator)]
+            if coordinator.device.capabilities.is_climate
+            else []
+        ),
     )
 
 

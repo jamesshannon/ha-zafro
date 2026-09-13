@@ -14,13 +14,20 @@ from homeassistant.components.climate import (
     SERVICE_SET_FAN_MODE,
     SERVICE_SET_HVAC_MODE,
     SERVICE_SET_SWING_HORIZONTAL_MODE,
+    SERVICE_SET_SWING_MODE,
     SERVICE_SET_TEMPERATURE,
     HVACMode,
 )
 from homeassistant.components.climate import (
     DOMAIN as CLIMATE_DOMAIN,
 )
-from homeassistant.const import ATTR_ENTITY_ID, ATTR_TEMPERATURE, SERVICE_TURN_OFF
+from homeassistant.const import (
+    ATTR_ENTITY_ID,
+    ATTR_TEMPERATURE,
+    SERVICE_TURN_OFF,
+    SERVICE_TURN_ON,
+    STATE_UNKNOWN,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -158,3 +165,76 @@ async def test_humidity_setpoint_is_refused_while_cooling(
             blocking=True,
         )
     assert fake_client.broker.commands == []
+
+
+async def test_turning_on_and_off_through_hvac_mode(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    """turn_on, and OFF via set_hvac_mode, are separate paths to the same command."""
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_HVAC_MODE,
+        {ATTR_ENTITY_ID: ENTITY, "hvac_mode": HVACMode.OFF},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        CLIMATE_DOMAIN, SERVICE_TURN_ON, {ATTR_ENTITY_ID: ENTITY}, blocking=True
+    )
+    assert fake_client.broker.commands == [{"poweron": False}, {"poweron": True}]
+
+
+async def test_vertical_swing_is_its_own_command(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_SWING_MODE,
+        {ATTR_ENTITY_ID: ENTITY, ATTR_SWING_MODE: "on"},
+        blocking=True,
+    )
+    assert fake_client.broker.commands == [{"oscset2": True}]
+
+
+async def test_humidity_setpoint_is_sent_in_dry_mode(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_HVAC_MODE,
+        {ATTR_ENTITY_ID: ENTITY, "hvac_mode": HVACMode.DRY},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        "set_humidity",
+        {ATTR_ENTITY_ID: ENTITY, "humidity": 55},
+        blocking=True,
+    )
+    assert fake_client.broker.commands[-1] == {"rhlevel": 55}
+
+
+async def test_set_temperature_without_a_temperature_does_nothing(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    """A call carrying only a target range has nothing this device can act on."""
+    entity = hass.data["entity_components"][CLIMATE_DOMAIN].get_entity(ENTITY)
+    await entity.async_set_temperature()
+    assert fake_client.broker.commands == []
+
+
+async def test_an_unreported_mode_and_unit_degrade_quietly(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    fake_client: FakeClient,
+) -> None:
+    """A frame with no power, mode or unit must not raise or invent a default."""
+    fake_client.broker.state_frame = {"temperature": 77, "rh": 50}
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(ENTITY)
+    assert state is not None
+    assert state.state == STATE_UNKNOWN
+    # Falls back to the device family's unit rather than guessing the user's.
+    assert state.attributes[ATTR_CURRENT_TEMPERATURE] == pytest.approx(25.0, abs=0.1)

@@ -43,6 +43,87 @@ Temperatures are reported in whatever unit the device says it uses, and Home Ass
 converts for display. A Fahrenheit unit therefore works correctly in a Celsius household
 and vice versa.
 
+## Use cases
+
+The point of putting a window unit on the cloud API rather than an IR blaster is that
+state flows *back*. You know what the unit is actually doing, not what you last told it
+to do, so the things people normally want from a smart air conditioner become reliable:
+
+- **Cool the bedroom before you go to sleep, not all evening.** Schedule the setpoint
+  rather than the plug, and let eco mode hold it.
+- **Stop cooling an empty house.** Tie the unit to presence, a door sensor, or a window
+  contact — anything that already lives in Home Assistant.
+- **Notice a problem early.** The fault-code binary sensor and the water-level sensor
+  surface a blocked drain or a failing unit before the room gets warm.
+- **See what a unit actually costs you.** Operating time and filter life are recorded as
+  long-term statistics, so runtime per week is a chart rather than a guess.
+- **Use one dashboard for a mixed household.** A Fahrenheit unit and a Celsius one report
+  in their own units and Home Assistant converts both.
+
+## Example automations
+
+Cool the bedroom down before bedtime, but only when it is actually warm:
+
+```yaml
+automation:
+  - alias: Pre-cool the bedroom
+    triggers:
+      - trigger: time
+        at: "21:30:00"
+    conditions:
+      - condition: numeric_state
+        entity_id: climate.bedroom_ac
+        attribute: current_temperature
+        above: 74
+    actions:
+      - action: climate.set_temperature
+        target:
+          entity_id: climate.bedroom_ac
+        data:
+          temperature: 68
+          hvac_mode: cool
+      - action: switch.turn_on
+        target:
+          entity_id: switch.bedroom_ac_sleep_mode
+```
+
+Shut the unit off when a window opens, and put it back as it was when the window shuts:
+
+```yaml
+automation:
+  - alias: Pause cooling while the window is open
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.bedroom_window
+        to: "on"
+        for: "00:02:00"
+    actions:
+      - action: climate.turn_off
+        target:
+          entity_id: climate.bedroom_ac
+```
+
+Tell someone when the unit reports a fault:
+
+```yaml
+automation:
+  - alias: Air conditioner fault
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.bedroom_ac_problem
+        to: "on"
+    actions:
+      - action: notify.persistent_notification
+        data:
+          title: Air conditioner problem
+          message: >-
+            {{ state_attr('sensor.bedroom_ac_fault_code', 'friendly_name') }}
+            reported fault code {{ states('sensor.bedroom_ac_fault_code') }}.
+```
+
+The fault-code sensor is disabled by default; enable it on the device page before using
+the last example.
+
 ## Installation
 
 ### HACS
@@ -102,9 +183,23 @@ Two details worth knowing:
 Availability comes from the device's MQTT last-will topic, so a unit unplugged at the
 wall shows as unavailable rather than stale.
 
+### Devices added or removed later
+
+The account is re-checked every five minutes, so a unit you add in the app appears on
+its own without a restart or a reload.
+
+Removal is deliberately slower. A device has to be missing from **fifteen minutes of
+consecutive successful checks** before its entities go, and a check that fails outright
+does not count against anything — a cloud API having a bad minute looks exactly like a
+deleted device in any single response, and only persistence tells them apart.
+
+When a device does go, Home Assistant keeps its identity: history is untouched, and if
+the unit comes back the original entity IDs, names and area assignments come back with
+it. You can also delete a device by hand from its device page, but only once the account
+has genuinely stopped listing it — otherwise the next check would simply add it again.
+
 ## Known limitations
 
-- **Devices added in the app after setup do not appear until you reload the entry.**
 - **Schedules are not exposed.** The cloud stores them server-side; use Home Assistant
   automations instead.
 - **Heat mode is untested.** The protocol has a value for it; no unit that supports it

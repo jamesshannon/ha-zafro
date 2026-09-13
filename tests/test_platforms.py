@@ -3,8 +3,16 @@
 from __future__ import annotations
 
 import pytest
-from homeassistant.const import ATTR_ENTITY_ID, SERVICE_TURN_ON, STATE_OFF, STATE_ON
+from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+from homeassistant.const import (
+    ATTR_ENTITY_ID,
+    SERVICE_TURN_OFF,
+    SERVICE_TURN_ON,
+    STATE_OFF,
+    STATE_ON,
+)
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -137,3 +145,18 @@ async def test_an_unsupported_product_gets_a_device_but_no_thermostat(
     assert registry.async_get_device_by_identifier(
         (DOMAIN, fake_client.device.sn), mock_config_entry.entry_id
     )
+
+
+async def test_a_transport_failure_surfaces_as_a_home_assistant_error(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    """A dropped connection is a failure, not a bad request: HomeAssistantError."""
+    fake_client.broker.offline.add(fake_client.device.sn)
+    with pytest.raises(HomeAssistantError) as caught:
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: "switch.bedroom_ac_eco_mode"},
+            blocking=True,
+        )
+    assert not isinstance(caught.value, ServiceValidationError)

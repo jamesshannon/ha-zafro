@@ -15,7 +15,7 @@ import pytest
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from pyzafro import ZafroDevice
+from pyzafro import ZafroConnectionError, ZafroDevice
 
 from custom_components.zafro.const import CONF_CLIENT_ID, DOMAIN
 
@@ -82,12 +82,16 @@ class FakeBroker:
     def __init__(self) -> None:
         self.published: list[dict[str, Any]] = []
         self.state_frame: dict[str, Any] = dict(STATE_FRAME)
+        #: Serials that refuse to answer, standing in for a unit that is unplugged.
+        self.offline: set[str] = set()
         self._devices: dict[str, ZafroDevice] = {}
 
     def register(self, device: ZafroDevice) -> None:
         self._devices[device.sn] = device
 
     async def publish(self, vendor: str, sn: str, payload: dict[str, Any]) -> None:
+        if sn in self.offline:
+            raise ZafroConnectionError(f"{sn} is not reachable")
         self.published.append(payload)
         device = self._devices[sn]
         if payload["cmd"] == 3:
@@ -102,21 +106,49 @@ class FakeBroker:
 
 
 class FakeClient:
-    """Stands in for ZafroClient. Same surface, no sockets."""
+    """Stands in for ZafroClient. Same surface, no sockets.
+
+    `listing` is the account as the cloud would report it. Tests move devices in and
+    out of it to stand for someone adding or deleting a unit in the vendor's app.
+    """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.broker = FakeBroker()
-        self.device = ZafroDevice(RAW_DEVICE, self.broker)  # type: ignore[arg-type]
-        self.broker.register(self.device)
         self.authenticate_error: Exception | None = None
         self.listen_error: Exception | None = None
+        self.enumerate_error: Exception | None = None
+
+        self.raws: dict[str, dict[str, Any]] = {RAW_DEVICE["sn"]: dict(RAW_DEVICE)}
+        self.listing: list[str] = [RAW_DEVICE["sn"]]
+        self.tracked: dict[str, ZafroDevice] = {}
+        self.device = self._device(RAW_DEVICE["sn"])
+
+    def _device(self, sn: str) -> ZafroDevice:
+        if (device := self.tracked.get(sn)) is None:
+            device = ZafroDevice(self.raws[sn], self.broker)  # type: ignore[arg-type]
+            self.tracked[sn] = device
+            self.broker.register(device)
+        return device
+
+    def add_to_account(self, sn: str, name: str) -> dict[str, Any]:
+        """Stand in for the user adding a unit in the app."""
+        raw = {**RAW_DEVICE, "sn": sn, "name": name, "mac": "001cc2000001"}
+        self.raws[sn] = raw
+        self.listing.append(sn)
+        return raw
 
     async def async_authenticate(self) -> None:
         if self.authenticate_error is not None:
             raise self.authenticate_error
 
     async def async_get_devices(self) -> list[ZafroDevice]:
-        return [self.device]
+        if self.enumerate_error is not None:
+            raise self.enumerate_error
+        return [self._device(sn) for sn in self.listing]
+
+    async def async_forget(self, sn: str) -> None:
+        if (device := self.tracked.pop(sn, None)) is not None:
+            device.close()
 
     async def async_wait_connected(self, timeout: float = 30.0) -> None:
         return
@@ -126,10 +158,14 @@ class FakeClient:
             raise self.listen_error
 
     def close(self) -> None:
-        self.device.close()
+        for device in self.tracked.values():
+            device.close()
 
     def diagnostics(self) -> dict[str, Any]:
-        return {"connected": True, "devices": [self.device.diagnostics()]}
+        return {
+            "connected": True,
+            "devices": [device.diagnostics() for device in self.tracked.values()],
+        }
 
 
 @pytest.fixture(autouse=True)

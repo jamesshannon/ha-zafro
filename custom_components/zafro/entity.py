@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.device_registry import (
     CONNECTION_NETWORK_MAC,
@@ -17,9 +18,12 @@ from .const import DOMAIN, MANUFACTURER
 from .coordinator import ZafroCoordinator
 
 if TYPE_CHECKING:
-    from collections.abc import Coroutine
+    from collections.abc import Callable, Coroutine, Iterable
 
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
     from pyzafro import DeviceState, ZafroDevice
+
+    from . import ZafroConfigEntry
 
 
 async def async_call(coro: Coroutine[Any, Any, None]) -> None:
@@ -43,6 +47,31 @@ async def async_call(coro: Coroutine[Any, Any, None]) -> None:
             translation_key="communication_error",
             translation_placeholders={"error": str(err)},
         ) from err
+
+
+@callback
+def async_setup_device_entities(
+    entry: ZafroConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+    factory: Callable[[ZafroCoordinator], Iterable[ZafroEntity]],
+) -> None:
+    """Add a platform's entities for every device, now and whenever one appears.
+
+    `factory` is called once per device and returns whatever that device's
+    capabilities justify — often nothing, which is how a product that is not an air
+    conditioner ends up with no thermostat. Discovery calls back through the same
+    factory later, so a device added in the app is furnished exactly like one that was
+    there at setup.
+    """
+
+    @callback
+    def _async_add(coordinators: list[ZafroCoordinator]) -> None:
+        async_add_entities(
+            entity for coordinator in coordinators for entity in factory(coordinator)
+        )
+
+    entry.runtime_data.new_device_callbacks.append(_async_add)
+    _async_add(list(entry.runtime_data.coordinators.values()))
 
 
 class ZafroEntity(CoordinatorEntity[ZafroCoordinator]):

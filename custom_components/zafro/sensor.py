@@ -20,7 +20,7 @@ from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTime
 from pyzafro import SensorKey
 
 from .climate import UNIT_TO_HA
-from .entity import ZafroEntity
+from .entity import ZafroEntity, async_setup_device_entities
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -112,11 +112,14 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add the sensors each device's capabilities claim."""
-    async_add_entities(
-        ZafroSensor(coordinator, description)
-        for coordinator in entry.runtime_data.coordinators.values()
-        for description in SENSORS
-        if description.key in coordinator.device.capabilities.sensors
+    async_setup_device_entities(
+        entry,
+        async_add_entities,
+        lambda coordinator: [
+            ZafroSensor(coordinator, description)
+            for description in SENSORS
+            if description.key in coordinator.device.capabilities.sensors
+        ],
     )
 
 

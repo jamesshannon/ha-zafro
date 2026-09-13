@@ -22,9 +22,13 @@ ignore = [
 "tests/*" = [
   "S101", "PLR2004", "D1", "D401", "ANN", "SLF001",
   "ARG001", "ARG002", "INP001", "TC001", "TC002", "TC003", "ASYNC109",
+  "FBT001",  # parametrised expectations are booleans, not flags
 ]
-# `hass` is part of the platform setup contract whether or not a platform needs it.
-"custom_components/zafro/{binary_sensor,climate,sensor,switch,diagnostics}.py" = ["ARG001"]
+# `hass` is part of Home Assistant's setup contracts whether or not the callback
+# needs it — platform setup, diagnostics, and async_remove_config_entry_device.
+"custom_components/zafro/{__init__,binary_sensor,climate,sensor,switch,diagnostics}.py" = [
+  "ARG001",
+]
 
 [tool.ruff.lint.flake8-type-checking]
 runtime-evaluated-base-classes = ["homeassistant.helpers.entity.Entity"]

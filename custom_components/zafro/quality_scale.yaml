@@ -8,7 +8,12 @@ rules:
     comment: |
       Pure push. The coordinator has update_interval=None and is fed by the library's
       MQTT subscription.
-  brands: todo
+  brands:
+    status: todo
+    comment: |
+      Needs a pull request against home-assistant/brands carrying the icon and
+      logo. The only rule left outstanding, and the only one that is not a change
+      to this repository.
   common-modules: done
   config-flow: done
   config-flow-test-coverage: done
@@ -53,7 +58,9 @@ rules:
     comment: Handled inside pyzafro's reconnect loop, which logs once per transition.
   parallel-updates: done
   reauthentication-flow: done
-  test-coverage: todo
+  test-coverage:
+    status: done
+    comment: 99% overall, no module below 96%.
 
   # Gold
   devices: done
@@ -65,18 +72,13 @@ rules:
     status: exempt
     comment: See discovery.
   docs-data-update: done
-  docs-examples: todo
+  docs-examples: done
   docs-known-limitations: done
   docs-supported-devices: done
   docs-supported-functions: done
   docs-troubleshooting: done
-  docs-use-cases: todo
-  dynamic-devices:
-    status: todo
-    comment: |
-      Devices added in the app after setup appear on reload but not live. ZafroClient
-      preserves existing device objects across enumeration, so a periodic re-enumeration
-      is the remaining work.
+  docs-use-cases: done
+  dynamic-devices: done
   entity-category: done
   entity-device-class: done
   entity-disabled-by-default: done
@@ -88,8 +90,11 @@ rules:
     status: exempt
     comment: No user-fixable condition is detectable yet.
   stale-devices:
-    status: todo
-    comment: Depends on dynamic-devices.
+    status: done
+    comment: |
+      Removed after a sustained absence from successful enumerations, never on one
+      short listing and never on a failed call. async_remove_config_entry_device also
+      lets the user delete a device the account has already stopped reporting.
 
   # Platinum
   async-dependency: done

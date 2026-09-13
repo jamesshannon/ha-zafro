@@ -13,7 +13,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.const import EntityCategory
 from pyzafro import BinarySensorKey
 
-from .entity import ZafroEntity
+from .entity import ZafroEntity, async_setup_device_entities
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -63,11 +63,14 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add the binary sensors each device's capabilities claim."""
-    async_add_entities(
-        ZafroBinarySensor(coordinator, description)
-        for coordinator in entry.runtime_data.coordinators.values()
-        for description in BINARY_SENSORS
-        if description.key in coordinator.device.capabilities.binary_sensors
+    async_setup_device_entities(
+        entry,
+        async_add_entities,
+        lambda coordinator: [
+            ZafroBinarySensor(coordinator, description)
+            for description in BINARY_SENSORS
+            if description.key in coordinator.device.capabilities.binary_sensors
+        ],
     )
 
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
@@ -11,12 +11,16 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from pyzafro import ZafroAuthError, ZafroClient, ZafroError
 
-from .const import CONF_CLIENT_ID, CONNECT_TIMEOUT
+from .const import CONF_CLIENT_ID, CONNECT_TIMEOUT, DOMAIN
 from .coordinator import ZafroCoordinator
+from .discovery import ZafroDiscovery
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.device_registry import DeviceEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,6 +38,12 @@ class ZafroRuntimeData:
 
     client: ZafroClient
     coordinators: dict[str, ZafroCoordinator]
+    #: One per platform, registered during its setup and called by discovery when a
+    #: device shows up later. Each decides for itself which of its entities, if any,
+    #: the new device's capabilities justify.
+    new_device_callbacks: list[Callable[[list[ZafroCoordinator]], None]] = field(
+        default_factory=list
+    )
 
 
 type ZafroConfigEntry = ConfigEntry[ZafroRuntimeData]
@@ -76,12 +86,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ZafroConfigEntry) -> boo
     entry.async_on_unload(client.close)
     entry.runtime_data = ZafroRuntimeData(client=client, coordinators=coordinators)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # After the platforms, so their callbacks are registered before a scan can fire.
+    ZafroDiscovery(hass, entry).async_start()
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ZafroConfigEntry) -> bool:
     """Unload a config entry. The background listener is cancelled by Home Assistant."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        for coordinator in entry.runtime_data.coordinators.values():
+            await coordinator.async_shutdown()
+    return unloaded
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: ZafroConfigEntry, device: DeviceEntry
+) -> bool:
+    """Allow deleting a device by hand, but only one this entry has let go.
+
+    Discovery removes devices on its own once an absence has lasted. This covers the
+    case it cannot reach: a device already gone from the account when Home Assistant
+    was last running, or one whose removal the user does not want to wait out. A device
+    still being enumerated is refused, because the next scan would add it straight back.
+    """
+    return not any(
+        identifier[1] in entry.runtime_data.coordinators
+        for identifier in device.identifiers
+        if identifier[0] == DOMAIN
+    )
 
 
 async def _async_listen(

@@ -13,6 +13,8 @@ from pyzafro import DeviceState, ZafroAuthError, ZafroError
 from .const import DOMAIN
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from pyzafro import ZafroDevice
@@ -40,12 +42,23 @@ class ZafroCoordinator(DataUpdateCoordinator[DeviceState]):
             update_interval=None,
         )
         self.device = device
+        # Subscribing here rather than in _async_setup, which only runs for the
+        # coordinators built during setup. A device discovered later gets no first
+        # refresh, and would otherwise never be wired to its pushes.
+        self._unsubscribe: Callable[[], None] | None = device.subscribe(
+            self._handle_push
+        )
 
-    async def _async_setup(self) -> None:
-        """Subscribe before the first refresh so no push is missed."""
-        unsubscribe = self.device.subscribe(self._handle_push)
-        if self.config_entry is not None:
-            self.config_entry.async_on_unload(unsubscribe)
+    async def async_shutdown(self) -> None:
+        """Stop listening, then tear the coordinator down.
+
+        Called when the entry unloads and when a device leaves the account, so it has
+        to tolerate being called twice.
+        """
+        if self._unsubscribe is not None:
+            self._unsubscribe()
+            self._unsubscribe = None
+        await super().async_shutdown()
 
     async def _async_update_data(self) -> DeviceState:
         """Establish a state baseline over MQTT.

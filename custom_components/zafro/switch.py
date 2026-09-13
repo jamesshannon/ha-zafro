@@ -17,7 +17,7 @@ from homeassistant.components.switch import (
 from homeassistant.const import EntityCategory
 from pyzafro import SwitchKey
 
-from .entity import ZafroEntity, async_call
+from .entity import ZafroEntity, async_call, async_setup_device_entities
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
@@ -88,11 +88,14 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add the switches each device's capabilities claim."""
-    async_add_entities(
-        ZafroSwitch(coordinator, description)
-        for coordinator in entry.runtime_data.coordinators.values()
-        for description in SWITCHES
-        if description.key in coordinator.device.capabilities.switches
+    async_setup_device_entities(
+        entry,
+        async_add_entities,
+        lambda coordinator: [
+            ZafroSwitch(coordinator, description)
+            for description in SWITCHES
+            if description.key in coordinator.device.capabilities.switches
+        ],
     )
 
 
