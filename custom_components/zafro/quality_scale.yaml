@@ -11,9 +11,14 @@ rules:
   brands:
     status: todo
     comment: |
-      Needs a pull request against home-assistant/brands carrying the icon and
-      logo. The only rule left outstanding, and the only one that is not a change
-      to this repository.
+      brand/icon.png and brand/icon@2x.png are served locally, which is what the UI
+      needs (HA 2026.3+ tries a custom integration's brand/ directory before the CDN,
+      and the logo.png fallback chain resolves to icon.png). The rule itself is only
+      satisfiable in core, which cannot serve local brand assets and requires a pull
+      request against home-assistant/brands.
+
+      No logo.png: the only lockup published on the vendor's site has the wordmark
+      cropped against the canvas on three sides.
   common-modules: done
   config-flow: done
   config-flow-test-coverage: done

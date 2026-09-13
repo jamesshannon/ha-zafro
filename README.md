@@ -124,6 +124,12 @@ automation:
 The fault-code sensor is disabled by default; enable it on the device page before using
 the last example.
 
+## Branding
+
+The integration ships its own icon in `custom_components/zafro/brand/`. Home Assistant
+2026.3 and later serve a custom integration's local brand images in preference to the
+CDN, so no submission to `home-assistant/brands` is needed for the icon to appear.
+
 ## Installation
 
 ### HACS
