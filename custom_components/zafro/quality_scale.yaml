@@ -72,7 +72,12 @@ rules:
   diagnostics: done
   discovery:
     status: exempt
-    comment: Cloud-only devices; there is nothing on the local network to discover.
+    comment: >-
+      The unit is on the local network and takes a DHCP lease, so it is findable in
+      principle. But it is reachable only through the vendor cloud, so finding it
+      grants no capability, and one config entry already covers every device on the
+      account. That leaves a DHCP matcher whose only payoff is one prompt at first
+      setup, keyed on an OUI belonging to the Wi-Fi module rather than to Zafro.
   discovery-update-info:
     status: exempt
     comment: See discovery.
