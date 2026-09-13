@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.util.ssl import get_default_context
 from pyzafro import ZafroAuthError, ZafroClient, ZafroError
 
 from .const import CONF_CLIENT_ID, CONNECT_TIMEOUT, DOMAIN
@@ -56,6 +57,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ZafroConfigEntry) -> boo
         entry.data[CONF_EMAIL],
         entry.data[CONF_PASSWORD],
         client_id=entry.data[CONF_CLIENT_ID],
+        # Home Assistant builds this once at startup, off the loop. Without it the
+        # library reads the system trust store when the socket opens, which blocks.
+        tls_context=get_default_context(),
     )
 
     try:

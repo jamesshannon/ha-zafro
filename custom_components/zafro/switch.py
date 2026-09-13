@@ -73,11 +73,18 @@ SWITCHES: tuple[ZafroSwitchEntityDescription, ...] = (
         value_fn=lambda device: device.state.display,
         set_fn=lambda device, *, on: device.async_set_display(on=on),
     ),
+    # Inverted on purpose. The wire field is `muteon`, where true means silenced —
+    # the device sets it itself when sleep mode starts. The entity is presented as the
+    # beeper, because "on" reading as "it beeps" is what a switch called Beeper has to
+    # mean; leaving it raw showed the unit as off while it was audibly beeping. The
+    # library stays faithful to the wire, so the flip lives here.
     ZafroSwitchEntityDescription(
         key=SwitchKey.MUTE,
         entity_category=EntityCategory.CONFIG,
-        value_fn=lambda device: device.state.mute,
-        set_fn=lambda device, *, on: device.async_set_mute(on=on),
+        value_fn=lambda device: (
+            None if device.state.mute is None else not device.state.mute
+        ),
+        set_fn=lambda device, *, on: device.async_set_mute(on=not on),
     ),
 )
 

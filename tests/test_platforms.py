@@ -69,12 +69,14 @@ async def test_problem_sensor_reflects_the_fault_code(
 
 
 @pytest.mark.parametrize(
-    ("entity_id", "wire_key"),
+    ("entity_id", "command"),
     [
-        ("switch.bedroom_ac_sleep_mode", "sleep"),
-        ("switch.bedroom_ac_eco_mode", "eco"),
-        ("switch.bedroom_ac_child_lock", "childlockon"),
-        ("switch.bedroom_ac_beeper", "muteon"),
+        ("switch.bedroom_ac_sleep_mode", {"sleep": True}),
+        ("switch.bedroom_ac_eco_mode", {"eco": True}),
+        ("switch.bedroom_ac_child_lock", {"childlockon": True}),
+        # The beeper is the wire's mute flag inverted: asking for sound means asking
+        # for muteon false.
+        ("switch.bedroom_ac_beeper", {"muteon": False}),
     ],
 )
 async def test_switches_send_only_their_own_field(
@@ -82,13 +84,36 @@ async def test_switches_send_only_their_own_field(
     init_integration: MockConfigEntry,
     fake_client: FakeClient,
     entity_id: str,
-    wire_key: str,
+    command: dict[str, bool],
 ) -> None:
     await hass.services.async_call(
         "switch", SERVICE_TURN_ON, {ATTR_ENTITY_ID: entity_id}, blocking=True
     )
-    assert fake_client.broker.commands == [{wire_key: True}]
+    assert fake_client.broker.commands == [command]
     assert hass.states.get(entity_id).state == STATE_ON
+
+
+async def test_beeper_reads_the_opposite_of_the_wire(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    """`muteon` is the mute flag; the entity is the beeper, so the two are opposites.
+
+    Shipped inverted once, because the entity read the flag straight through and the
+    test agreed with it. Both directions are pinned here so it cannot happen again.
+    """
+    assert hass.states.get("switch.bedroom_ac_beeper").state == STATE_ON
+
+    await hass.services.async_call(
+        "switch",
+        SERVICE_TURN_OFF,
+        {ATTR_ENTITY_ID: "switch.bedroom_ac_beeper"},
+        blocking=True,
+    )
+    assert fake_client.broker.commands == [{"muteon": True}]
+
+    fake_client.device.handle_frame(4, {"muteon": True, "origin": 0})
+    await hass.async_block_till_done()
+    assert hass.states.get("switch.bedroom_ac_beeper").state == STATE_OFF
 
 
 async def test_sleep_side_effects_are_not_invented(
@@ -106,12 +131,12 @@ async def test_sleep_side_effects_are_not_invented(
         blocking=True,
     )
     assert hass.states.get("switch.bedroom_ac_sleep_mode").state == STATE_ON
-    assert hass.states.get("switch.bedroom_ac_beeper").state == STATE_OFF
+    assert hass.states.get("switch.bedroom_ac_beeper").state == STATE_ON
     assert hass.states.get("climate.bedroom_ac").attributes["fan_mode"] == "low"
 
     fake_client.device.handle_frame(4, {"muteon": True, "windlevel": 0, "origin": 0})
     await hass.async_block_till_done()
-    assert hass.states.get("switch.bedroom_ac_beeper").state == STATE_ON
+    assert hass.states.get("switch.bedroom_ac_beeper").state == STATE_OFF
     assert hass.states.get("climate.bedroom_ac").attributes["fan_mode"] == "silent"
 
 
