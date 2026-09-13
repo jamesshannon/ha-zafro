@@ -52,6 +52,10 @@ type ZafroConfigEntry = ConfigEntry[ZafroRuntimeData]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ZafroConfigEntry) -> bool:
     """Set up Zafro from a config entry."""
+    # Logged so a reload is legible in a log filtered to this integration. Without it
+    # the only trace is the account being authenticated again, which is easy to read
+    # as a reconnect when it is really a teardown and a fresh start.
+    _LOGGER.debug("Setting up entry %s", entry.entry_id)
     client = ZafroClient(
         async_get_clientsession(hass),
         entry.data[CONF_EMAIL],
@@ -98,6 +102,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ZafroConfigEntry) -> boo
 
 async def async_unload_entry(hass: HomeAssistant, entry: ZafroConfigEntry) -> bool:
     """Unload a config entry. The background listener is cancelled by Home Assistant."""
+    _LOGGER.debug("Unloading entry %s", entry.entry_id)
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         for coordinator in entry.runtime_data.coordinators.values():
