@@ -238,8 +238,9 @@ has genuinely stopped listing it — otherwise the next check would simply add i
 - **Fault codes are raw numbers.** Only `0` has ever been seen, so the vocabulary for
   anything else is unknown. The "Problem" binary sensor tells you *that* something is
   wrong; the fault code sensor is there so you can report *what*.
-- **Which swing axis is which is a considered guess.** `oscset1` is treated as
-  horizontal. If your louvres disagree, please open an issue — it is a one-line fix.
+- **Which swing axis is which was settled by watching one unit's louvres.** Nothing in
+  the protocol names them; `oscset1` turned out to be vertical and `oscset2` horizontal,
+  the opposite of the original guess. If yours disagree, please open an issue.
 
 ## Troubleshooting
 

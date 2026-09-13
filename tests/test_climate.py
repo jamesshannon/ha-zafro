@@ -143,14 +143,14 @@ async def test_selecting_a_mode_powers_on_first(
 async def test_swing_axes_are_separate(
     hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
 ) -> None:
-    """oscset1 is horizontal, oscset2 vertical — a choice, so pin it down."""
+    """The horizontal axis is oscset2. Shipped transposed once, so pin it down."""
     await hass.services.async_call(
         CLIMATE_DOMAIN,
         SERVICE_SET_SWING_HORIZONTAL_MODE,
         {ATTR_ENTITY_ID: ENTITY, ATTR_SWING_HORIZONTAL_MODE: "on"},
         blocking=True,
     )
-    assert fake_client.broker.commands == [{"oscset1": True}]
+    assert fake_client.broker.commands == [{"oscset2": True}]
 
 
 async def test_humidity_setpoint_is_refused_while_cooling(
@@ -192,7 +192,7 @@ async def test_vertical_swing_is_its_own_command(
         {ATTR_ENTITY_ID: ENTITY, ATTR_SWING_MODE: "on"},
         blocking=True,
     )
-    assert fake_client.broker.commands == [{"oscset2": True}]
+    assert fake_client.broker.commands == [{"oscset1": True}]
 
 
 async def test_humidity_setpoint_is_sent_in_dry_mode(
