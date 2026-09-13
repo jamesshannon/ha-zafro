@@ -20,9 +20,9 @@ entities from that, rather than refusing to start or inventing controls the unit
 have.
 
 If you own a Zafro product that is not an air conditioner at all, it will register as a
-device with no controls, and you will see a warning naming the model. That is the library
-telling you it has never handled that product class — not a failure. See
-[Adding a model](#adding-a-model); it is a change to `pyzafro` alone.
+device with no controls, and you will see a warning naming the model: the library has
+never handled that product class. See [Adding a model](#adding-a-model); it is a change
+to `pyzafro` alone.
 
 ## What you get
 
@@ -45,9 +45,8 @@ and vice versa.
 
 ## Use cases
 
-The point of putting a window unit on the cloud API rather than an IR blaster is that
-state flows *back*. You know what the unit is actually doing, not what you last told it
-to do, so the things people normally want from a smart air conditioner become reliable:
+Unlike an IR blaster, the cloud API reports state *back*: you know what the unit is
+actually doing, not what you last told it to do.
 
 - **Cool the bedroom before you go to sleep, not all evening.** Schedule the setpoint
   rather than the plug, and let eco mode hold it.
@@ -56,7 +55,7 @@ to do, so the things people normally want from a smart air conditioner become re
 - **Notice a problem early.** The fault-code binary sensor and the water-level sensor
   surface a blocked drain or a failing unit before the room gets warm.
 - **See what a unit actually costs you.** Operating time and filter life are recorded as
-  long-term statistics, so runtime per week is a chart rather than a guess.
+  long-term statistics, so runtime per week is a chart.
 - **Use one dashboard for a mixed household.** A Fahrenheit unit and a Celsius one report
   in their own units and Home Assistant converts both.
 
@@ -153,7 +152,7 @@ restart Home Assistant.
 ```
 
 Home Assistant installs this itself at setup, the same way it installs any other
-requirement — there is nothing extra to do. Two consequences worth knowing:
+requirement — there is nothing extra to do. Two consequences:
 
 - Resolving a URL requirement needs `git` on the host and a reachable GitHub on
   **every** start, because Home Assistant cannot tell whether a URL is already
@@ -195,7 +194,7 @@ want the files gone too.
 The integration is `cloud_push`. It holds one MQTT-over-WebSocket connection per account
 and receives state as the device reports it — there is no polling interval to tune.
 
-Two details worth knowing:
+Two details:
 
 - **Commands are not acknowledged synchronously.** Changing something applies
   immediately in the UI and the device confirms a moment later on the same push stream.
@@ -205,14 +204,14 @@ Two details worth knowing:
   and drops the fan speed; eco moves the setpoint. Those consequences are never guessed —
   they appear when the device reports them, a second or so later.
 
-Availability comes from the device's MQTT last-will topic, so a unit unplugged at the
-wall shows as unavailable rather than stale — immediately, because that is the device
-speaking for itself.
+A unit unplugged at the wall shows as unavailable immediately, rather than stale:
+availability comes from the device's MQTT last-will topic, which is the device speaking
+for itself.
 
-Losing the connection to the cloud is treated differently. The broker drops the socket
+Losing the connection to the cloud is treated differently. Entities are only marked
+unavailable if the connection is still down after a minute. The broker drops the socket
 every so often and the reconnect takes a second or two, with the unit reachable either
-side of it. Entities are only marked unavailable if the connection is still down after a
-minute, so a routine reconnect is never visible.
+side of it, so a routine reconnect is never visible.
 
 ### Devices added or removed later
 
@@ -238,9 +237,9 @@ has genuinely stopped listing it — otherwise the next check would simply add i
 - **Fault codes are raw numbers.** Only `0` has ever been seen, so the vocabulary for
   anything else is unknown. The "Problem" binary sensor tells you *that* something is
   wrong; the fault code sensor is there so you can report *what*.
-- **Which swing axis is which was settled by watching one unit's louvres.** Nothing in
-  the protocol names them; `oscset1` turned out to be vertical and `oscset2` horizontal,
-  the opposite of the original guess. If yours disagree, please open an issue.
+- **The swing axes are named by observation, not by the protocol.** `oscset1` is
+  vertical and `oscset2` horizontal, confirmed on one unit. If yours disagree, please
+  open an issue.
 
 ## Troubleshooting
 
