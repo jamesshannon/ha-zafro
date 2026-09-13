@@ -148,7 +148,7 @@ restart Home Assistant.
 `pyzafro` is not on PyPI yet, so the manifest asks for it by git tag:
 
 ```json
-"requirements": ["pyzafro@git+https://github.com/jamesshannon/pyzafro@v0.1.2"]
+"requirements": ["pyzafro@git+https://github.com/jamesshannon/pyzafro@v1.0.0"]
 ```
 
 Home Assistant installs this itself at setup, the same way it installs any other
@@ -160,7 +160,7 @@ requirement — there is nothing extra to do. Two consequences:
   against what is installed and touches the network only once, ever.
 - Upgrading the library means bumping the tag here, not just tagging `pyzafro`.
 
-This reverts to `pyzafro==0.1.2` once the library is published.
+This reverts to `pyzafro==1.0.0` once the library is published.
 
 ## Configuration
 
