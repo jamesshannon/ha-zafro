@@ -20,7 +20,7 @@ from pyzafro.capabilities import resolve
 
 from custom_components.zafro.const import DOMAIN
 
-from .conftest import FakeClient
+from .conftest import BASE_INFO_FRAME, FakeClient
 
 
 async def test_every_sensor_is_disabled_by_default(
@@ -140,10 +140,40 @@ async def test_sleep_side_effects_are_not_invented(
     assert hass.states.get("climate.bedroom_ac").attributes["fan_mode"] == "silent"
 
 
+async def test_the_signal_sensor_follows_a_later_reading(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    fake_client: FakeClient,
+) -> None:
+    """It is a MEASUREMENT, so it has to measure something.
+
+    Base info was read once during setup and never again, which left this sensor
+    reporting the signal from whenever the integration last loaded — for weeks, with
+    a state class promising otherwise. pyzafro re-reads it on a slow clock now.
+    """
+    mock_config_entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+    registry.async_get_or_create(
+        "sensor",
+        "zafro",
+        f"{fake_client.device.sn}-rssi",
+        suggested_object_id="bedroom_ac_wi_fi_signal",
+        disabled_by=None,
+    )
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get("sensor.bedroom_ac_wi_fi_signal").state == "44"
+
+    fake_client.device.handle_frame(5, {**BASE_INFO_FRAME, "rssi": 31})
+    await hass.async_block_till_done()
+
+    assert hass.states.get("sensor.bedroom_ac_wi_fi_signal").state == "31"
+
+
 async def test_device_going_offline_makes_entities_unavailable(
     hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
 ) -> None:
-    fake_client.device.handle_presence(online=False)
+    fake_client.device.handle_presence(online=False, reason="test")
     await hass.async_block_till_done()
     assert hass.states.get("climate.bedroom_ac").state == "unavailable"
     assert hass.states.get("switch.bedroom_ac_eco_mode").state == "unavailable"
