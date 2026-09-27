@@ -61,9 +61,15 @@ running is not something the protocol will say.
 
 **Turning it off takes about twenty seconds.** The fan keeps running while the unit winds
 down, so the fan mode you see in the first few seconds after switching off is the shutdown
-and not the setting. Two selftest runs read inside that window and drew a conclusion about
-the off state from it that neither was entitled to; what the unit reports once the timer
-has finished has not been measured yet.
+and not the setting.
+
+Once the timer has finished, the fan mode shown while the unit is off **is** the setting.
+The unit does not park the fan: powered down at the top speed it kept reporting the top
+speed in three full reads taken from twenty-one seconds onwards. And a fan speed set while
+the unit is off is kept — written half a minute after switching off, it read back unchanged
+half a minute later — so the controls are not no-ops while the unit is idle. Two earlier
+selftest runs read inside the shutdown window and were not entitled to either conclusion;
+this one waited the timer out.
 
 Sleep and eco are switches rather than climate presets because they are two independent
 commands, and a preset is one exclusive choice. The device decides for itself what one
