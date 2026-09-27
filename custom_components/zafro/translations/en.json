@@ -45,11 +45,11 @@
         "state_attributes": {
           "fan_mode": {
             "state": {
-              "silent": "Silent",
               "low": "Low",
               "medium": "Medium",
               "high": "High",
-              "turbo": "Turbo"
+              "auto": "Auto",
+              "extra": "Extra"
             }
           }
         }

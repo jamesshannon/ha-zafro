@@ -137,7 +137,9 @@ async def test_sleep_side_effects_are_not_invented(
     fake_client.device.handle_frame(4, {"muteon": True, "windlevel": 0, "origin": 0})
     await hass.async_block_till_done()
     assert hass.states.get("switch.bedroom_ac_beeper").state == STATE_OFF
-    assert hass.states.get("climate.bedroom_ac").attributes["fan_mode"] == "silent"
+    # windlevel 0 is the speed sleep drops to, and it is on no dial the user has, so
+    # the fan control reads as unset rather than claiming a mode nothing can select.
+    assert hass.states.get("climate.bedroom_ac").attributes["fan_mode"] is None
 
 
 async def test_the_signal_sensor_follows_a_later_reading(

@@ -65,14 +65,15 @@ async def test_capabilities_drive_the_offered_options(
         HVACMode.DRY,
         HVACMode.FAN_ONLY,
     ]
-    # windlevel 0 is the silent speed sleep selects, not off. It has to be listed or
-    # Home Assistant logs an error the moment sleep mode reports it.
+    # The fan control the hardware actually has: the remote's fan button cycles
+    # low-medium-high-auto, and holding it selects EXTRA, which no speed can be set
+    # alongside. windlevel 0 is not here because nothing can ask for it.
     assert state.attributes[ATTR_FAN_MODES] == [
-        "silent",
         "low",
         "medium",
         "high",
-        "turbo",
+        "auto",
+        "extra",
     ]
 
 
@@ -96,12 +97,96 @@ async def test_write_is_optimistic(
     await hass.services.async_call(
         CLIMATE_DOMAIN,
         SERVICE_SET_FAN_MODE,
-        {ATTR_ENTITY_ID: ENTITY, ATTR_FAN_MODE: "turbo"},
+        {ATTR_ENTITY_ID: ENTITY, ATTR_FAN_MODE: "auto"},
         blocking=True,
     )
     state = hass.states.get(ENTITY)
     assert state is not None
-    assert state.attributes[ATTR_FAN_MODE] == "turbo"
+    assert state.attributes[ATTR_FAN_MODE] == "auto"
+
+
+async def test_auto_is_the_top_of_the_speed_range(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    """The top speed is the app's AUTO button, shipped as "turbo" by mistake.
+
+    1.1.0 called windlevel 4 "turbo" and had no mode for the real EXTRA function at all.
+    """
+    fake_client.device.handle_frame(4, {"windlevel": 4, "origin": 0})
+    await hass.async_block_till_done()
+
+    state = hass.states.get(ENTITY)
+    assert state is not None
+    assert state.attributes[ATTR_FAN_MODE] == "auto"
+
+
+async def test_extra_outranks_the_speed_it_reports(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    """A real long press on the remote: {"windlevel": 3, "extra": true}.
+
+    Reading the speed alone would show high, which is what the fan is doing but not
+    what it is set to.
+    """
+    fake_client.device.handle_frame(4, {"windlevel": 3, "extra": True, "origin": 0})
+    await hass.async_block_till_done()
+
+    state = hass.states.get(ENTITY)
+    assert state is not None
+    assert state.attributes[ATTR_FAN_MODE] == "extra"
+
+
+async def test_extra_is_its_own_command(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    """It is a fan mode in Home Assistant and a boolean on the wire."""
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_FAN_MODE,
+        {ATTR_ENTITY_ID: ENTITY, ATTR_FAN_MODE: "extra"},
+        blocking=True,
+    )
+
+    assert fake_client.broker.commands == [{"extra": True}]
+    assert hass.states.get(ENTITY).attributes[ATTR_FAN_MODE] == "extra"
+
+
+async def test_a_speed_takes_the_fan_back_out_of_extra(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    """Asking for low while EXTRA runs means low, so EXTRA leaves with it."""
+    fake_client.device.handle_frame(4, {"windlevel": 3, "extra": True, "origin": 0})
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_FAN_MODE,
+        {ATTR_ENTITY_ID: ENTITY, ATTR_FAN_MODE: "low"},
+        blocking=True,
+    )
+
+    assert fake_client.broker.commands == [
+        {"windlevel": 1, "extra": False, "sleep": False, "eco": False}
+    ]
+    assert hass.states.get(ENTITY).attributes[ATTR_FAN_MODE] == "low"
+
+
+async def test_the_sleep_speed_is_no_fan_mode_at_all(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    """Sleep drops the fan to windlevel 0, which is on no dial.
+
+    Reporting a mode that is not in the offered list would be a lie about a control the
+    user has; nothing selected is the truth, and it is what the app shows too.
+    """
+    fake_client.device.handle_frame(
+        4, {"windlevel": 0, "sleep": True, "muteon": True, "origin": 0}
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(ENTITY)
+    assert state is not None
+    assert state.attributes[ATTR_FAN_MODE] is None
 
 
 async def test_turning_off_only_sends_power(

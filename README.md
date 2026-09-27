@@ -30,14 +30,22 @@ One device per air conditioner, with:
 
 | Entity | Notes |
 | --- | --- |
-| **Climate** | Power, mode, setpoint, fan speed, both swing axes. Ambient temperature and humidity are attributes of this entity. |
+| **Climate** | Power, mode, setpoint, fan mode, both swing axes. Ambient temperature and humidity are attributes of this entity. |
 | **Switches** | Sleep, eco, child lock, display light, beeper. |
 | **Binary sensor** | Problem, from the device's fault code. |
 | **Sensors** | Ambient temperature and humidity, Wi-Fi signal, operating time, filter life, water level, fault code. **All disabled by default** — the first two duplicate climate attributes and exist for long-term statistics; the rest are diagnostics. Enable the ones you want on the device page. |
 
-Sleep and eco are switches rather than climate presets because the app has separate
-buttons for them and they can be on at the same time. Presets are mutually exclusive, so
-one of the two states would always be misrepresented.
+The fan mode covers the whole fan control, which on the unit is a single button: low,
+medium and high are its three bars, auto is its fourth position, and **Extra** is a long
+press on the same button. Extra is the vendor's own name for it — it is what the unit's
+display shows and what the app's button says — and it is a different field on the wire
+rather than a fifth speed. The device runs the fan at high while it is on, so selecting a
+speed is what turns it back off, which is also what the app does.
+
+Sleep and eco are switches rather than climate presets because they are two independent
+commands, and a preset is one exclusive choice. The device decides for itself what one
+mode does to the other — enabling eco was observed to turn sleep off — and reports it, so
+the switches follow the unit instead of second-guessing it.
 
 Temperatures are reported in whatever unit the device says it uses, and Home Assistant
 converts for display. A Fahrenheit unit therefore works correctly in a Celsius household
@@ -201,8 +209,10 @@ Two details:
   If a command is rejected the device says nothing at all, so anything still unconfirmed
   after five seconds triggers a full state re-read, and the device's answer wins.
 - **The device rewrites fields you did not send.** Turning on sleep also mutes the beeper
-  and drops the fan speed; eco moves the setpoint. Those consequences are never guessed —
-  they appear when the device reports them, a second or so later.
+  and drops the fan below its slowest selectable speed, which shows as no fan mode at
+  all; eco moves the setpoint, holds the fan at low, and turns sleep off. Those
+  consequences are never guessed — they appear when the device reports them, a second or
+  so later.
 
 A unit unplugged at the wall shows as unavailable immediately, rather than stale:
 availability comes from the device's MQTT last-will topic, which is the device speaking

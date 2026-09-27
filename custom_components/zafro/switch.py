@@ -1,8 +1,10 @@
 """Switch platform: the booleans that are not part of the climate model.
 
-Sleep and eco have separate buttons in the app and can be on at the same time, so they
-cannot be climate presets — presets are mutually exclusive and would have to
-misrepresent one of the two states.
+Sleep and eco are two commands the device accepts independently, so they are two
+switches. They cannot be climate presets, which are one exclusive choice: the device
+takes either command at any time and decides for itself what to clear — enabling eco was
+observed to turn sleep off — and it reports what it did. Reflecting that is this
+platform's job; enforcing an exclusivity the protocol does not have is not.
 """
 
 from __future__ import annotations

@@ -6,6 +6,10 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
+    FAN_AUTO,
+    FAN_HIGH,
+    FAN_LOW,
+    FAN_MEDIUM,
     SWING_HORIZONTAL_OFF,
     SWING_HORIZONTAL_ON,
     SWING_OFF,
@@ -36,15 +40,26 @@ MODE_TO_HVAC: dict[Mode, HVACMode] = {
 }
 HVAC_TO_MODE = {hvac: mode for mode, hvac in MODE_TO_HVAC.items()}
 
-#: `windlevel` 0 is not off — it is the silent speed that sleep mode selects, with the
-#: unit still running. It has to appear here, because Home Assistant logs an error when
-#: a device reports a fan mode that is not in `fan_modes`.
+#: EXTRA is a fan mode here and a boolean on the wire. That is not a mismatch: the
+#: hardware has one fan control, whose four positions the remote's fan button cycles and
+#: whose fifth is a long press on the same button. A unit in EXTRA reports a speed
+#: alongside it, so the two cannot both be offered at once, which is exactly what
+#: `fan_mode` means. A separate switch would imply they combine.
+#:
+#: Not one of Home Assistant's own fan modes, which are `on`, `off`, `auto`, `low`,
+#: `medium`, `high`, `top`, `middle`, `focus`, `diffuse` — so it is named after the
+#: vendor instead. The unit's display says EXTRA and so does the app's button; only the
+#: app's code calls it turbo.
+FAN_EXTRA = "extra"
+
+#: `windlevel` 1-4 are the cycle: three bars and auto. 0 is absent because it is not a
+#: position on it — it is what the device reports while sleep runs, and neither the
+#: remote nor the app can ask for it.
 SPEED_TO_FAN_MODE: dict[int, str] = {
-    0: "silent",
-    1: "low",
-    2: "medium",
-    3: "high",
-    4: "turbo",
+    1: FAN_LOW,
+    2: FAN_MEDIUM,
+    3: FAN_HIGH,
+    4: FAN_AUTO,
 }
 FAN_MODE_TO_SPEED = {name: speed for speed, name in SPEED_TO_FAN_MODE.items()}
 
@@ -99,13 +114,16 @@ class ZafroClimate(ZafroEntity, ClimateEntity):
             features |= ClimateEntityFeature.TARGET_TEMPERATURE
         if caps.target_humidity_range is not None:
             features |= ClimateEntityFeature.TARGET_HUMIDITY
-        if caps.has(Feature.FAN_SPEED) and caps.fan_speeds:
+        fan_modes = [
+            SPEED_TO_FAN_MODE[speed]
+            for speed in (caps.fan_speeds if caps.has(Feature.FAN_SPEED) else ())
+            if speed in SPEED_TO_FAN_MODE
+        ]
+        if caps.has(Feature.EXTRA):
+            fan_modes.append(FAN_EXTRA)
+        if fan_modes:
             features |= ClimateEntityFeature.FAN_MODE
-            self._attr_fan_modes = [
-                SPEED_TO_FAN_MODE[speed]
-                for speed in caps.fan_speeds
-                if speed in SPEED_TO_FAN_MODE
-            ]
+            self._attr_fan_modes = fan_modes
         if caps.has(Feature.SWING_VERTICAL):
             features |= ClimateEntityFeature.SWING_MODE
             self._attr_swing_modes = [SWING_ON, SWING_OFF]
@@ -169,8 +187,19 @@ class ZafroClimate(ZafroEntity, ClimateEntity):
 
     @property
     def fan_mode(self) -> str | None:
-        """Fan speed as a named mode."""
-        speed = self.zafro_state.fan_speed
+        """Where the fan control is set: one of the speeds, or EXTRA.
+
+        EXTRA has to be read first. The device reports it alongside the speed it decided
+        to run at — a long press on the remote gives {"windlevel": 3, "extra": true} —
+        so going by the speed alone would show high whenever EXTRA is on.
+
+        None while sleep runs, because the device reports `windlevel` 0 then and that is
+        no position on the control. The app shows nothing selected in the same state.
+        """
+        state = self.zafro_state
+        if state.extra:
+            return FAN_EXTRA
+        speed = state.fan_speed
         return None if speed is None else SPEED_TO_FAN_MODE.get(speed)
 
     @property
@@ -223,7 +252,15 @@ class ZafroClimate(ZafroEntity, ClimateEntity):
         await async_call(self.device.async_set_target_humidity(humidity))
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
-        """Set the fan speed."""
+        """Set the fan speed, or EXTRA, which is a different command entirely.
+
+        Selecting a speed is what takes the unit back out of EXTRA; the library sends
+        that as one payload, along with clearing the two modes that would otherwise
+        override the speed.
+        """
+        if fan_mode == FAN_EXTRA:
+            await async_call(self.device.async_set_extra(on=True))
+            return
         await async_call(self.device.async_set_fan_speed(FAN_MODE_TO_SPEED[fan_mode]))
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
