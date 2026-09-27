@@ -49,6 +49,12 @@ So it appears as a fan mode named after the only thing that gets you there, and 
 a speed leaves it again. Sleep is also still a switch: it mutes the beeper as well as
 slowing the fan, which a fan mode cannot show, and both write the same setting.
 
+Two things the unit does that look like bugs and are not. **While it is off, the fan mode
+reads Low** — the unit parks the fan at its slowest speed when powered down and reports
+that, so Low is what it is actually set to. And **sleep, Extra and eco are refused in fan
+mode**: the unit acknowledges the command and then switches the setting straight back off,
+because all three are cooling programmes. Use cool or dry mode for those.
+
 Sleep and eco are switches rather than climate presets because they are two independent
 commands, and a preset is one exclusive choice. The device decides for itself what one
 mode does to the other — enabling eco was observed to turn sleep off — and reports it, so
