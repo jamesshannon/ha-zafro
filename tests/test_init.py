@@ -81,8 +81,11 @@ async def test_credentials_rejected_while_running_triggers_reauth(
     ("platform", "expected"),
     [
         ("climate", 1),
-        # Five switches, all enabled.
-        ("switch", 5),
+        # Four switches, all enabled. Not five: the display light is absent from this
+        # model's capabilities: a live run found the unit reporting `lighton` and
+        # ignoring every command to it, and a switch that does nothing is worse than
+        # a missing one.
+        ("switch", 4),
         # Seven sensors, every one disabled by default, so none is in the state machine.
         ("sensor", 0),
         # Problem is enabled; reached target is not.

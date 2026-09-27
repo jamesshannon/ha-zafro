@@ -31,7 +31,7 @@ One device per air conditioner, with:
 | Entity | Notes |
 | --- | --- |
 | **Climate** | Power, mode, setpoint, fan mode, both swing axes. Ambient temperature and humidity are attributes of this entity. |
-| **Switches** | Sleep, eco, child lock, display light, beeper. |
+| **Switches** | Sleep, eco, child lock, beeper, and a display light on models that accept one. The window unit reports its display light and ignores every command to it, so it gets no switch: a control that does nothing is worse than a missing one. |
 | **Binary sensor** | Problem, from the device's fault code. |
 | **Sensors** | Ambient temperature and humidity, Wi-Fi signal, operating time, filter life, water level, fault code. **All disabled by default** — the first two duplicate climate attributes and exist for long-term statistics; the rest are diagnostics. Enable the ones you want on the device page. |
 
@@ -49,11 +49,19 @@ So it appears as a fan mode named after the only thing that gets you there, and 
 a speed leaves it again. Sleep is also still a switch: it mutes the beeper as well as
 slowing the fan, which a fan mode cannot show, and both write the same setting.
 
-Two things the unit does that look like bugs and are not. **While it is off, the fan mode
-reads Low** — the unit parks the fan at its slowest speed when powered down and reports
-that, so Low is what it is actually set to. And **sleep, Extra and eco are refused in fan
-mode**: the unit acknowledges the command and then switches the setting straight back off,
-because all three are cooling programmes. Use cool or dry mode for those.
+One thing the unit does that looks like a bug and is not: **sleep is refused in fan
+mode**. The unit acknowledges the command and then switches the setting straight back
+off. Use cool or dry mode for it.
+
+Extra and eco used to be listed here too, on the reasoning that all three are cooling
+programmes. A live conformance run refused that: firmware 1.0.29 accepts and keeps both
+in fan mode, which is reasonable enough, since Extra is the top of the fan control and
+eco forces the bottom of it. Whether either does anything for a unit with no compressor
+running is not something the protocol will say.
+
+**While it is off, the fan mode reads whatever it was last set to.** The same run found
+this unit keeping speed 4 through a power-down rather than parking the fan at Low, so a
+speed shown while off is the setting and not a stale reading either way.
 
 Sleep and eco are switches rather than climate presets because they are two independent
 commands, and a preset is one exclusive choice. The device decides for itself what one
