@@ -33,7 +33,7 @@ One device per air conditioner, with:
 | **Climate** | Power, mode, setpoint, fan mode, both swing axes. Ambient temperature and humidity are attributes of this entity. |
 | **Switches** | Sleep, eco, child lock, beeper, and a display light on models that accept one. The window unit reports its display light and ignores every command to it, so it gets no switch: a control that does nothing is worse than a missing one. |
 | **Binary sensor** | Problem, from the device's fault code. |
-| **Sensors** | Ambient temperature and humidity, Wi-Fi signal, operating time, filter life, water level, fault code. **All disabled by default** — the first two duplicate climate attributes and exist for long-term statistics; the rest are diagnostics. Enable the ones you want on the device page. |
+| **Sensors** | Ambient temperature and humidity, Wi-Fi signal, operating time, filter service interval, water level, fault code. **All disabled by default** — the first two duplicate climate attributes and exist for long-term statistics; the rest are diagnostics. Enable the ones you want on the device page. |
 
 The fan mode covers the whole fan control, which on the unit is a single button: low,
 medium and high are its three bars, auto is its fourth position, and **Extra** is a long
@@ -83,8 +83,10 @@ actually doing, not what you last told it to do.
   contact — anything that already lives in Home Assistant.
 - **Notice a problem early.** The fault-code binary sensor and the water-level sensor
   surface a blocked drain or a failing unit before the room gets warm.
-- **See what a unit actually costs you.** Operating time and filter life are recorded as
-  long-term statistics, so runtime per week is a chart.
+- **See what a unit actually costs you.** Operating time is recorded as a long-term
+  statistic, so runtime per week is a chart. The filter sensor beside it is the service
+  interval the unit asks for — 600 hours on the window model — and not a countdown: the
+  unit reports the threshold and never its own progress towards it.
 - **Use one dashboard for a mixed household.** A Fahrenheit unit and a Celsius one report
   in their own units and Home Assistant converts both.
 

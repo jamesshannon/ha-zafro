@@ -81,10 +81,17 @@ SENSORS: tuple[ZafroSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: device.state.work_time,
     ),
+    # `filterthr` is a threshold, not a reading. It is 600 on this model, unchanged
+    # across every session and across a fortnight, and flat while the unit runs: the
+    # service interval the filter reminder counts towards. So it carries no state
+    # class, because long-term statistics for a configuration number are the mean of a
+    # constant, and it is not named as anything remaining. Operating time above is the
+    # counter that moves. Nothing observed ties the two together, or resets either when
+    # a filter is changed, so the hours still to go are not a number this integration
+    # can derive without inventing that relationship.
     ZafroSensorEntityDescription(
         key=SensorKey.FILTER_HOURS,
         device_class=SensorDeviceClass.DURATION,
-        state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTime.HOURS,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: device.state.filter_hours,

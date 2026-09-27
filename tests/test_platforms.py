@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from homeassistant.components.sensor import SensorStateClass
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.const import (
     ATTR_ENTITY_ID,
@@ -16,9 +17,11 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pyzafro import SensorKey
 from pyzafro.capabilities import resolve
 
 from custom_components.zafro.const import DOMAIN
+from custom_components.zafro.sensor import SENSORS
 
 from .conftest import BASE_INFO_FRAME, FakeClient
 
@@ -34,6 +37,21 @@ async def test_every_sensor_is_disabled_by_default(
     assert all(
         entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION for entry in sensors
     )
+
+
+def test_the_filter_threshold_is_not_recorded_as_a_statistic() -> None:
+    """`filterthr` is the interval the filter reminder counts towards, not a reading.
+
+    It shipped as a MEASUREMENT called "Filter life remaining", which promises a number
+    counting down and delivers 600 for ever: the value is identical in every session,
+    unchanged across a fortnight, and flat while the unit runs. A state class would fill
+    long-term statistics with the mean of a constant. Operating time beside it is the
+    one that advances, and the device never reports its progress against the threshold,
+    so the integration has a threshold and a counter and no relationship between them.
+    """
+    by_key = {description.key: description for description in SENSORS}
+    assert by_key[SensorKey.FILTER_HOURS].state_class is None
+    assert by_key[SensorKey.WORK_TIME].state_class is SensorStateClass.TOTAL_INCREASING
 
 
 async def test_enabled_sensor_reports_the_captured_reading(

@@ -61,7 +61,7 @@
       "ambient_humidity": { "name": "Ambient humidity" },
       "rssi": { "name": "Wi-Fi signal" },
       "work_time": { "name": "Operating time" },
-      "filter_hours": { "name": "Filter life remaining" },
+      "filter_hours": { "name": "Filter service interval" },
       "water_level": { "name": "Water level" },
       "fault_code": { "name": "Fault code" }
     },
