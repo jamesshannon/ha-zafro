@@ -59,9 +59,11 @@ in fan mode, which is reasonable enough, since Extra is the top of the fan contr
 eco forces the bottom of it. Whether either does anything for a unit with no compressor
 running is not something the protocol will say.
 
-**While it is off, the fan mode reads whatever it was last set to.** The same run found
-this unit keeping speed 4 through a power-down rather than parking the fan at Low, so a
-speed shown while off is the setting and not a stale reading either way.
+**While it is off, the fan mode reads whatever it was last set to, and you can change
+it.** The same run found this unit keeping speed 4 through a power-down rather than parking
+the fan at Low, and a second run wrote a different speed to it while off and had it kept.
+So a speed shown while off is the setting rather than a stale reading, and setting the fan
+before you turn the unit on works.
 
 Sleep and eco are switches rather than climate presets because they are two independent
 commands, and a preset is one exclusive choice. The device decides for itself what one
