@@ -65,10 +65,12 @@ async def test_capabilities_drive_the_offered_options(
         HVACMode.DRY,
         HVACMode.FAN_ONLY,
     ]
-    # The fan control the hardware actually has: the remote's fan button cycles
-    # low-medium-high-auto, and holding it selects EXTRA, which no speed can be set
-    # alongside. windlevel 0 is not here because nothing can ask for it.
+    # Every position of the one fan control, slowest first: sleep drops the fan below
+    # the slowest selectable speed, the remote's fan button cycles the middle four, and
+    # holding it selects EXTRA. windlevel 0 is not a mode of its own because nothing but
+    # sleep can reach it.
     assert state.attributes[ATTR_FAN_MODES] == [
+        "sleep",
         "low",
         "medium",
         "high",
@@ -147,7 +149,7 @@ async def test_extra_is_its_own_command(
         blocking=True,
     )
 
-    assert fake_client.broker.commands == [{"extra": True}]
+    assert fake_client.broker.commands == [{"extra": True, "sleep": False}]
     assert hass.states.get(ENTITY).attributes[ATTR_FAN_MODE] == "extra"
 
 
@@ -171,17 +173,71 @@ async def test_a_speed_takes_the_fan_back_out_of_extra(
     assert hass.states.get(ENTITY).attributes[ATTR_FAN_MODE] == "low"
 
 
-async def test_the_sleep_speed_is_no_fan_mode_at_all(
+async def test_sleep_is_the_slowest_fan_mode(
     hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
 ) -> None:
-    """Sleep drops the fan to windlevel 0, which is on no dial.
+    """Sleep drops the fan to windlevel 0, which no speed names.
 
-    Reporting a mode that is not in the offered list would be a lie about a control the
-    user has; nothing selected is the truth, and it is what the app shows too.
+    It used to read as nothing selected, which looks like a control Home Assistant
+    cannot display rather than a fan that is running quietly.
     """
     fake_client.device.handle_frame(
         4, {"windlevel": 0, "sleep": True, "muteon": True, "origin": 0}
     )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(ENTITY)
+    assert state is not None
+    assert state.attributes[ATTR_FAN_MODE] == "sleep"
+
+
+async def test_selecting_sleep_is_the_sleep_command(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    """The same boolean the switch writes, and the switch follows it."""
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_FAN_MODE,
+        {ATTR_ENTITY_ID: ENTITY, ATTR_FAN_MODE: "sleep"},
+        blocking=True,
+    )
+
+    assert fake_client.broker.commands == [{"sleep": True, "extra": False}]
+    assert hass.states.get(ENTITY).attributes[ATTR_FAN_MODE] == "sleep"
+    assert hass.states.get("switch.bedroom_ac_sleep_mode").state == "on"
+
+
+async def test_a_speed_takes_the_fan_back_out_of_sleep(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    """The way out of sleep is the same as the way out of EXTRA."""
+    fake_client.device.handle_frame(
+        4, {"windlevel": 0, "sleep": True, "muteon": True, "origin": 0}
+    )
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_FAN_MODE,
+        {ATTR_ENTITY_ID: ENTITY, ATTR_FAN_MODE: "high"},
+        blocking=True,
+    )
+
+    assert fake_client.broker.commands == [
+        {"windlevel": 3, "extra": False, "sleep": False, "eco": False}
+    ]
+    assert hass.states.get(ENTITY).attributes[ATTR_FAN_MODE] == "high"
+
+
+async def test_an_unexplained_speed_reads_as_nothing(
+    hass: HomeAssistant, init_integration: MockConfigEntry, fake_client: FakeClient
+) -> None:
+    """A speed of 0 without sleep is a state nothing here can account for.
+
+    It has never been seen. Naming it would be inventing a mode; leaving the control
+    unset says as much as is actually known.
+    """
+    fake_client.device.handle_frame(4, {"windlevel": 0, "origin": 0})
     await hass.async_block_till_done()
 
     state = hass.states.get(ENTITY)

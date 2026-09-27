@@ -52,6 +52,17 @@ HVAC_TO_MODE = {hvac: mode for mode, hvac in MODE_TO_HVAC.items()}
 #: app's code calls it turbo.
 FAN_EXTRA = "extra"
 
+#: Sleep is the position below the slowest speed. It is `sleep` on the wire, and the
+#: device answers it with `windlevel: 0` — a speed nothing else can reach, and one the
+#: unit refuses to hold when asked for directly: commanding it is acknowledged and then
+#: undone about five seconds later. So it is named after the thing that does reach it.
+#:
+#: It stays a switch as well. The fan mode is where the state of the fan is legible, and
+#: the switch is where automations already point; both write the one boolean, and the
+#: device reports what it did either way. Sleep also mutes the beeper, which is a fan
+#: mode's blind spot.
+FAN_SLEEP = "sleep"
+
 #: `windlevel` 1-4 are the cycle: three bars and auto. 0 is absent because it is not a
 #: position on it — it is what the device reports while sleep runs, and neither the
 #: remote nor the app can ask for it.
@@ -114,7 +125,8 @@ class ZafroClimate(ZafroEntity, ClimateEntity):
             features |= ClimateEntityFeature.TARGET_TEMPERATURE
         if caps.target_humidity_range is not None:
             features |= ClimateEntityFeature.TARGET_HUMIDITY
-        fan_modes = [
+        fan_modes = [FAN_SLEEP] if caps.has(Feature.SLEEP) else []
+        fan_modes += [
             SPEED_TO_FAN_MODE[speed]
             for speed in (caps.fan_speeds if caps.has(Feature.FAN_SPEED) else ())
             if speed in SPEED_TO_FAN_MODE
@@ -187,16 +199,19 @@ class ZafroClimate(ZafroEntity, ClimateEntity):
 
     @property
     def fan_mode(self) -> str | None:
-        """Where the fan control is set: one of the speeds, or EXTRA.
+        """Where the fan control is set: sleep, one of the speeds, or EXTRA.
 
-        EXTRA has to be read first. The device reports it alongside the speed it decided
-        to run at — a long press on the remote gives {"windlevel": 3, "extra": true} —
-        so going by the speed alone would show high whenever EXTRA is on.
+        The two ends of the range are read before the speed, because the device reports
+        a speed underneath both of them — `windlevel: 0` under sleep, and
+        {"windlevel": 3, "extra": true} under EXTRA — so going by the speed alone would
+        show sleep as nothing at all and EXTRA as high.
 
-        None while sleep runs, because the device reports `windlevel` 0 then and that is
-        no position on the control. The app shows nothing selected in the same state.
+        None only for a speed this integration cannot account for, which no unit has
+        been seen to report.
         """
         state = self.zafro_state
+        if state.sleep:
+            return FAN_SLEEP
         if state.extra:
             return FAN_EXTRA
         speed = state.fan_speed
@@ -252,12 +267,15 @@ class ZafroClimate(ZafroEntity, ClimateEntity):
         await async_call(self.device.async_set_target_humidity(humidity))
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
-        """Set the fan speed, or EXTRA, which is a different command entirely.
+        """Set the fan control, whichever of its three commands that takes.
 
-        Selecting a speed is what takes the unit back out of EXTRA; the library sends
-        that as one payload, along with clearing the two modes that would otherwise
+        Selecting a speed is what takes the unit back out of sleep or EXTRA; the library
+        sends that as one payload, along with clearing the modes that would otherwise
         override the speed.
         """
+        if fan_mode == FAN_SLEEP:
+            await async_call(self.device.async_set_sleep(on=True))
+            return
         if fan_mode == FAN_EXTRA:
             await async_call(self.device.async_set_extra(on=True))
             return

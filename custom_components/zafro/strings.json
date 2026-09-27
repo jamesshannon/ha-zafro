@@ -45,6 +45,7 @@
         "state_attributes": {
           "fan_mode": {
             "state": {
+              "sleep": "Sleep",
               "low": "Low",
               "medium": "Medium",
               "high": "High",

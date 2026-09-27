@@ -71,7 +71,9 @@ async def test_problem_sensor_reflects_the_fault_code(
 @pytest.mark.parametrize(
     ("entity_id", "command"),
     [
-        ("switch.bedroom_ac_sleep_mode", {"sleep": True}),
+        # Sleep is also a position of the fan control, so it leaves the other one on
+        # the way in. The rest are independent booleans and send exactly themselves.
+        ("switch.bedroom_ac_sleep_mode", {"sleep": True, "extra": False}),
         ("switch.bedroom_ac_eco_mode", {"eco": True}),
         ("switch.bedroom_ac_child_lock", {"childlockon": True}),
         # The beeper is the wire's mute flag inverted: asking for sound means asking
@@ -79,7 +81,7 @@ async def test_problem_sensor_reflects_the_fault_code(
         ("switch.bedroom_ac_beeper", {"muteon": False}),
     ],
 )
-async def test_switches_send_only_their_own_field(
+async def test_switches_write_their_own_field(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
     fake_client: FakeClient,
@@ -132,14 +134,16 @@ async def test_sleep_side_effects_are_not_invented(
     )
     assert hass.states.get("switch.bedroom_ac_sleep_mode").state == STATE_ON
     assert hass.states.get("switch.bedroom_ac_beeper").state == STATE_ON
-    assert hass.states.get("climate.bedroom_ac").attributes["fan_mode"] == "low"
+    # Sleep is a position of the fan control, so the commanded field moves the fan mode
+    # at once. The speed underneath it is still whatever the device last reported.
+    assert hass.states.get("climate.bedroom_ac").attributes["fan_mode"] == "sleep"
+    assert fake_client.device.state.fan_speed == 1
 
     fake_client.device.handle_frame(4, {"muteon": True, "windlevel": 0, "origin": 0})
     await hass.async_block_till_done()
     assert hass.states.get("switch.bedroom_ac_beeper").state == STATE_OFF
-    # windlevel 0 is the speed sleep drops to, and it is on no dial the user has, so
-    # the fan control reads as unset rather than claiming a mode nothing can select.
-    assert hass.states.get("climate.bedroom_ac").attributes["fan_mode"] is None
+    assert fake_client.device.state.fan_speed == 0
+    assert hass.states.get("climate.bedroom_ac").attributes["fan_mode"] == "sleep"
 
 
 async def test_the_signal_sensor_follows_a_later_reading(

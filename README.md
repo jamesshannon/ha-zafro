@@ -42,6 +42,13 @@ display shows and what the app's button says — and it is a different field on 
 rather than a fifth speed. The device runs the fan at high while it is on, so selecting a
 speed is what turns it back off, which is also what the app does.
 
+**Sleep** is the sixth position, below the slowest speed. The unit drops the fan there
+when sleep mode starts, nothing else reaches that speed, and the unit will not hold it if
+asked for directly — commanding it is acknowledged and then undone a few seconds later.
+So it appears as a fan mode named after the only thing that gets you there, and selecting
+a speed leaves it again. Sleep is also still a switch: it mutes the beeper as well as
+slowing the fan, which a fan mode cannot show, and both write the same setting.
+
 Sleep and eco are switches rather than climate presets because they are two independent
 commands, and a preset is one exclusive choice. The device decides for itself what one
 mode does to the other — enabling eco was observed to turn sleep off — and reports it, so
@@ -209,10 +216,9 @@ Two details:
   If a command is rejected the device says nothing at all, so anything still unconfirmed
   after five seconds triggers a full state re-read, and the device's answer wins.
 - **The device rewrites fields you did not send.** Turning on sleep also mutes the beeper
-  and drops the fan below its slowest selectable speed, which shows as no fan mode at
-  all; eco moves the setpoint, holds the fan at low, and turns sleep off. Those
-  consequences are never guessed — they appear when the device reports them, a second or
-  so later.
+  and drops the fan below its slowest selectable speed; eco moves the setpoint, holds the
+  fan at low, and turns sleep off. Those consequences are never guessed — they appear
+  when the device reports them, a second or so later.
 
 A unit unplugged at the wall shows as unavailable immediately, rather than stale:
 availability comes from the device's MQTT last-will topic, which is the device speaking
