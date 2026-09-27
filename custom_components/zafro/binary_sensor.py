@@ -44,9 +44,9 @@ def _reached_target(device: ZafroDevice) -> bool | None:
     """Return the thermostat's verdict, or nothing at all while the unit is off.
 
     The device does not answer the comparison while it is off: it reports 0. Measured
-    across four power transitions in two conformance runs with the setpoint and the
-    ambient reading identical either side — satisfied running, not satisfied off, pushed
-    as a delta within 0.55s of each power command.
+    across every observed power transition with the setpoint and the ambient reading
+    identical either side — satisfied running, not satisfied off, pushed as a delta
+    within a second of the power command.
 
     Reported raw, that is indistinguishable from "running and still working towards the
     target", so an automation on the negative would fire every time the air conditioner

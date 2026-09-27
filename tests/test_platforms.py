@@ -249,8 +249,8 @@ async def test_the_reached_target_sensor_is_unknown_while_the_unit_is_off(
 ) -> None:
     """The device does not answer the comparison while off; it reports 0.
 
-    Measured across four power transitions in two conformance runs, with the setpoint
-    and the ambient reading identical either side. Reported raw, "not reached" while the
+    Measured across every observed power transition, with the setpoint and the ambient
+    reading identical either side. Reported raw, "not reached" while the
     unit is idle is the same reading as "running and still working towards it", so an
     automation on the negative would fire every time the air conditioner is off.
 

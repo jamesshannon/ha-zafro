@@ -54,22 +54,19 @@ mode**. The unit acknowledges the command and then switches the setting straight
 off. Use cool or dry mode for it.
 
 Extra and eco used to be listed here too, on the reasoning that all three are cooling
-programmes. A live conformance run refused that: firmware 1.0.29 accepts and keeps both
-in fan mode, which is reasonable enough, since Extra is the top of the fan control and
-eco forces the bottom of it. Whether either does anything for a unit with no compressor
-running is not something the protocol will say.
+programmes. The unit refuses that reasoning: it accepts and keeps both in fan mode, which
+is reasonable enough, since Extra is the top of the fan control and eco forces the bottom
+of it. Whether either does anything for a unit with no compressor running is not something
+the protocol will say.
 
 **Turning it off takes about twenty seconds.** The fan keeps running while the unit winds
 down, so the fan mode you see in the first few seconds after switching off is the shutdown
 and not the setting.
 
 Once the timer has finished, the fan mode shown while the unit is off **is** the setting.
-The unit does not park the fan: powered down at the top speed it kept reporting the top
-speed in three full reads taken from twenty-one seconds onwards. And a fan speed set while
-the unit is off is kept — written half a minute after switching off, it read back unchanged
-half a minute later — so the controls are not no-ops while the unit is idle. Two earlier
-selftest runs read inside the shutdown window and were not entitled to either conclusion;
-this one waited the timer out.
+The unit does not park the fan, and a fan speed set while the unit is off is kept, so the
+controls are not no-ops while the unit is idle. Both were measured well past the timer;
+earlier readings that said otherwise had been taken inside the shutdown.
 
 Sleep and eco are switches rather than climate presets because they are two independent
 commands, and a preset is one exclusive choice. The device decides for itself what one
