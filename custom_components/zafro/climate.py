@@ -206,8 +206,12 @@ class ZafroClimate(ZafroEntity, ClimateEntity):
         {"windlevel": 3, "extra": true} under EXTRA — so going by the speed alone would
         show sleep as nothing at all and EXTRA as high.
 
-        None only for a speed this integration cannot account for, which no unit has
-        been seen to report.
+        None for a speed this integration cannot account for, which in practice means
+        `windlevel: 0` arriving without `sleep` — a real state, but only ever a passing
+        one. Leaving sleep clears the flag about a second before the speed comes back,
+        and the device will briefly report a 0 it was commanded before replacing it with
+        the speed it is really running. Unknown for that second is honest and corrects
+        itself; guessing would put a wrong speed in the recorder.
         """
         state = self.zafro_state
         if state.sleep:
