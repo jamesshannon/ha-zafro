@@ -40,6 +40,23 @@ def _problem(device: ZafroDevice) -> bool | None:
     return None if code is None else code != 0
 
 
+def _reached_target(device: ZafroDevice) -> bool | None:
+    """Return the thermostat's verdict, or nothing at all while the unit is off.
+
+    The device does not answer the comparison while it is off: it reports 0. Measured
+    across four power transitions in two conformance runs with the setpoint and the
+    ambient reading identical either side — satisfied running, not satisfied off, pushed
+    as a delta within 0.55s of each power command.
+
+    Reported raw, that is indistinguishable from "running and still working towards the
+    target", so an automation on the negative would fire every time the air conditioner
+    is idle. Unknown is the honest answer, and `pyzafro`'s selftest asserts the device
+    really does withhold it so this cannot quietly become a lie.
+    """
+    state = device.state
+    return None if state.power is False else state.reached_target
+
+
 BINARY_SENSORS: tuple[ZafroBinarySensorEntityDescription, ...] = (
     ZafroBinarySensorEntityDescription(
         key=BinarySensorKey.PROBLEM,
@@ -52,7 +69,7 @@ BINARY_SENSORS: tuple[ZafroBinarySensorEntityDescription, ...] = (
     ZafroBinarySensorEntityDescription(
         key=BinarySensorKey.REACHED_TARGET,
         entity_registry_enabled_default=False,
-        value_fn=lambda device: device.state.reached_target,
+        value_fn=_reached_target,
     ),
 )
 

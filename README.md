@@ -32,7 +32,7 @@ One device per air conditioner, with:
 | --- | --- |
 | **Climate** | Power, mode, setpoint, fan mode, both swing axes. Ambient temperature and humidity are attributes of this entity. |
 | **Switches** | Sleep, eco, child lock, beeper, and a display light on models that accept one. The window unit reports its display light and ignores every command to it, so it gets no switch: a control that does nothing is worse than a missing one. |
-| **Binary sensor** | Problem, from the device's fault code. |
+| **Binary sensor** | Problem, from the device's fault code. "Target reached" is there too, disabled by default because the climate card already shows the setpoint beside the ambient reading; it reports *unknown* while the unit is off, because the device does not answer the comparison while off and a raw "not reached" would be indistinguishable from "running and still working on it". |
 | **Sensors** | Ambient temperature and humidity, Wi-Fi signal, operating time, filter service interval, water level, fault code. **All disabled by default** — the first two duplicate climate attributes and exist for long-term statistics; the rest are diagnostics. Enable the ones you want on the device page. |
 
 The fan mode covers the whole fan control, which on the unit is a single button: low,

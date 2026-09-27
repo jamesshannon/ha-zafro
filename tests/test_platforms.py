@@ -11,6 +11,7 @@ from homeassistant.const import (
     SERVICE_TURN_ON,
     STATE_OFF,
     STATE_ON,
+    STATE_UNKNOWN,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -239,3 +240,45 @@ async def test_a_transport_failure_surfaces_as_a_home_assistant_error(
             blocking=True,
         )
     assert not isinstance(caught.value, ServiceValidationError)
+
+
+async def test_the_reached_target_sensor_is_unknown_while_the_unit_is_off(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    fake_client: FakeClient,
+) -> None:
+    """The device does not answer the comparison while off; it reports 0.
+
+    Measured across four power transitions in two conformance runs, with the setpoint
+    and the ambient reading identical either side. Reported raw, "not reached" while the
+    unit is idle is the same reading as "running and still working towards it", so an
+    automation on the negative would fire every time the air conditioner is off.
+
+    Enabled here by hand because the entity ships disabled — it duplicates what the
+    climate card already shows — which is why nothing else covered this.
+    """
+    mock_config_entry.add_to_hass(hass)
+    er.async_get(hass).async_get_or_create(
+        "binary_sensor",
+        "zafro",
+        f"{fake_client.device.sn}-reached_target",
+        suggested_object_id="bedroom_ac_reached_target",
+        disabled_by=None,
+    )
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    entity_id = "binary_sensor.bedroom_ac_reached_target"
+
+    fake_client.device.handle_frame(4, {"poweron": True, "reachtarget": True})
+    await hass.async_block_till_done()
+    assert hass.states.get(entity_id).state == STATE_ON
+
+    # Only the power changes. The device pushes reachtarget 0 of its own accord within a
+    # second, but the sensor must not wait for that frame to stop claiming a verdict.
+    fake_client.device.handle_frame(4, {"poweron": False})
+    await hass.async_block_till_done()
+    assert hass.states.get(entity_id).state == STATE_UNKNOWN
+
+    fake_client.device.handle_frame(4, {"poweron": True})
+    await hass.async_block_till_done()
+    assert hass.states.get(entity_id).state == STATE_ON
